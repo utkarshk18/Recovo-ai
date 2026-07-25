@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>RECOVO AI — Post-Surgery Recovery Assistant</title>
+  <meta name="description" content="RECOVO AI is your personal voice-first post-surgery recovery monitoring assistant."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div id="app">
+
+<!-- SCREEN 1: HOME -->
+<section id="screen-home" class="screen active">
+  <div class="screen-inner">
+    <header class="top-bar">
+      <div class="logo-mark">
+        <span class="logo-icon">❤️</span>
+        <span class="logo-text">RECOVO <strong>AI</strong></span>
+      </div>
+      <button class="icon-btn" id="btn-go-profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </button>
+    </header>
+    <div class="welcome-hero">
+      <p class="date-label" id="home-date"></p>
+      <h1 class="welcome-heading">How are you feeling today?</h1>
+      <p class="welcome-sub">Tap the button below and tell me how you're doing.</p>
+    </div>
+    <div class="mic-hero">
+      <button class="mic-primary pulse" id="btn-start-checkin" aria-label="Start Daily Check-in">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+      </button>
+      <p class="mic-label">Start Daily Check-in</p>
+    </div>
+    <div class="status-card">
+      <div class="status-left">
+        <p class="status-meta">Last check-in &middot; 8:30 AM</p>
+        <p class="status-value">You're doing well <span class="status-badge badge-low">Low Risk</span></p>
+      </div>
+      <div class="status-dot dot-low"></div>
+    </div>
+    <div class="shortcut-grid">
+      <button class="shortcut-card" id="btn-go-recovery"><div class="shortcut-icon bg-blue">📈</div><span>Recovery<br/>Progress</span></button>
+      <button class="shortcut-card" id="btn-go-meds"><div class="shortcut-icon bg-green">💊</div><span>Medication<br/>Reminder</span></button>
+      <button class="shortcut-card emergency-card" id="btn-go-emergency"><div class="shortcut-icon bg-red">🚨</div><span>Emergency<br/>Help</span></button>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="home">🏠<span>Home</span></button>
+    <button class="nav-btn" data-screen="recovery">📊<span>Progress</span></button>
+    <button class="nav-btn" data-screen="meds">💊<span>Meds</span></button>
+    <button class="nav-btn" data-screen="profile">👤<span>Profile</span></button>
+  </nav>
+</section>
+
+<!-- SCREEN 2: VOICE CHECK-IN -->
+<section id="screen-checkin" class="screen">
+  <div class="screen-inner checkin-inner">
+    <div class="checkin-top">
+      <button class="back-btn" id="btn-back-checkin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="screen-title">Daily Check-in</h2>
+    </div>
+    <div class="checkin-focus">
+      <p class="listen-label" id="listen-status">Listening&hellip;</p>
+      <div class="waveform" id="waveform">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <button class="mic-primary mic-checkin" id="btn-mic-checkin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+      </button>
+      <div class="transcript-box" id="transcript-box">
+        <p class="transcript-placeholder">Your words will appear here&hellip;</p>
+      </div>
+      <button class="link-btn" id="btn-edit-transcript">✏️ Edit manually</button>
+      <textarea class="manual-input hidden" id="manual-input" placeholder="Type your symptoms here…" rows="3"></textarea>
+    </div>
+    <button class="btn-primary" id="btn-analyze" disabled>Analyze Symptoms</button>
+  </div>
+</section>
+
+<!-- SCREEN 3: RESULTS -->
+<section id="screen-result" class="screen">
+  <div class="screen-inner">
+    <div class="checkin-top">
+      <button class="back-btn" id="btn-back-result">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="screen-title">Your Results</h2>
+    </div>
+    <div class="result-risk-card" id="result-risk-card">
+      <div class="risk-top">
+        <div class="risk-level-label">Risk Level</div>
+        <div class="risk-badge" id="result-risk-badge">Low</div>
+      </div>
+      <div class="risk-icon" id="result-risk-icon">✅</div>
+      <p class="risk-msg" id="result-risk-msg">You're doing well! Keep resting and stay hydrated.</p>
+    </div>
+    <div class="info-card">
+      <div class="info-row">
+        <span class="info-label">AI Confidence</span>
+        <span class="info-val" id="result-conf-pct">84%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="result-conf-bar" style="width:84%"></div></div>
+      <p class="uncertainty-msg hidden" id="uncertainty-msg">⚠️ We're not fully confident. Please answer a few more questions.</p>
+    </div>
+    <div class="info-card">
+      <h3 class="card-heading">Why this result?</h3>
+      <ul class="reason-list" id="reason-list">
+        <li>Pain level reported as mild (3/10)</li>
+        <li>No fever or chills mentioned</li>
+        <li>Normal activity level for day 4 post-op</li>
+      </ul>
+    </div>
+    <div class="action-card" id="action-card">
+      <h3 class="card-heading">What should you do?</h3>
+      <p class="action-text" id="action-text">Stay at home and rest. Take your medications on time. Call your doctor if pain worsens.</p>
+      <div class="action-btns">
+        <button class="btn-secondary" id="btn-ask-followup">Answer Follow-up Questions</button>
+        <button class="btn-primary" id="btn-done-result">Done ✓</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 4: FOLLOW-UP -->
+<section id="screen-followup" class="screen">
+  <div class="screen-inner">
+    <div class="checkin-top">
+      <button class="back-btn" id="btn-back-followup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="screen-title">A Few More Questions</h2>
+    </div>
+    <div class="followup-progress"><div class="followup-progress-fill" id="followup-progress-fill"></div></div>
+    <p class="followup-counter" id="followup-counter">Question 1 of 3</p>
+    <div class="followup-card" id="followup-card">
+      <div class="ai-bubble"><p id="followup-question">Do you have any swelling or redness around your wound?</p></div>
+      <div class="answer-grid">
+        <button class="answer-btn" data-val="yes">Yes</button>
+        <button class="answer-btn" data-val="no">No</button>
+        <button class="answer-btn answer-btn-unsure" data-val="unsure">Not Sure</button>
+      </div>
+      <button class="link-btn mic-reply-btn">🎙️ Reply by voice</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 5: RECOVERY DASHBOARD -->
+<section id="screen-recovery" class="screen">
+  <div class="screen-inner">
+    <div class="meds-header" style="margin-bottom: 1rem;">
+      <div>
+        <h2 class="page-heading">Recovery Progress</h2>
+        <p class="page-sub">Day <strong id="recovery-day">5</strong> of your recovery journey</p>
+      </div>
+      <button class="btn-add-med" id="btn-generate-report" aria-label="Weekly Report">
+        📄 Report
+      </button>
+    </div>
+    <div class="timeline-scroll"><div class="timeline-track" id="timeline-track"></div></div>
+    <div class="chart-card">
+      <h3 class="card-heading">Pain Level Trend</h3>
+      <canvas id="pain-chart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3 class="card-heading">Risk Level History</h3>
+      <canvas id="risk-chart"></canvas>
+    </div>
+    <div class="info-card">
+      <h3 class="card-heading">Recent Alerts</h3>
+      <div class="alert-list" id="alert-list">
+        <div class="alert-item alert-warn">⚠️ Day 3 — Mild pain spike reported</div>
+        <div class="alert-item alert-ok">✅ Day 4 — All vitals normal</div>
+        <div class="alert-item alert-ok">✅ Day 5 — Feeling good</div>
+      </div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" data-screen="home">🏠<span>Home</span></button>
+    <button class="nav-btn active" data-screen="recovery">📊<span>Progress</span></button>
+    <button class="nav-btn" data-screen="meds">💊<span>Meds</span></button>
+    <button class="nav-btn" data-screen="profile">👤<span>Profile</span></button>
+  </nav>
+</section>
+
+<!-- SCREEN 6: MEDICATIONS -->
+<section id="screen-meds" class="screen">
+  <div class="screen-inner">
+    <div class="meds-header">
+      <div>
+        <h2 class="page-heading">Medications</h2>
+        <p class="page-sub">Today's schedule — stay on track 💊</p>
+      </div>
+      <button class="btn-add-med" id="btn-open-add-med" aria-label="Add Medicine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add
+      </button>
+    </div>
+    <div class="med-list" id="med-list"></div>
+    <div class="info-card" style="text-align:center;margin-top:1rem;">
+      <p class="muted-text">Always consult your doctor before changing medication.</p>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" data-screen="home">🏠<span>Home</span></button>
+    <button class="nav-btn" data-screen="recovery">📊<span>Progress</span></button>
+    <button class="nav-btn active" data-screen="meds">💊<span>Meds</span></button>
+    <button class="nav-btn" data-screen="profile">👤<span>Profile</span></button>
+  </nav>
+</section>
+
+<!-- SCREEN 7: EMERGENCY -->
+<section id="screen-emergency" class="screen">
+  <div class="emergency-inner">
+    <div class="emergency-icon-wrap">
+      <div class="emergency-ring"></div>
+      <div class="emergency-icon">🚨</div>
+    </div>
+    <h1 class="emergency-heading">Seek Medical Help<br/>Immediately</h1>
+    <p class="emergency-sub">Your symptoms suggest you need urgent attention. Do not wait.</p>
+    <div class="emergency-actions">
+      <button class="btn-emergency" id="btn-call-doctor">📞 Call Doctor</button>
+      <button class="btn-emergency-sec" id="btn-notify-caregiver">🔔 Notify Caregiver</button>
+    </div>
+    <button class="link-btn emergency-back" id="btn-back-emergency">← I'm okay, go back</button>
+    <div class="emergency-tip">
+      <p>🏥 Nearest: <strong>City General Hospital</strong></p>
+      <p>📍 2.4 km away</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 8: PROFILE -->
+<section id="screen-profile" class="screen">
+  <div class="screen-inner">
+    <h2 class="page-heading">Profile &amp; Settings</h2>
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">👤</div>
+      <div>
+        <p class="profile-name">Ramesh Kumar</p>
+        <p class="profile-tag">Knee Replacement &middot; Age 62</p>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading" data-i18n="patient_info">Patient Information</h3>
+      <div class="settings-card">
+        <label class="setting-row"><span data-i18n="full_name">Full Name</span><input type="text" id="profile-name-input" value="Ramesh Kumar" class="setting-input"/></label>
+        <label class="setting-row"><span data-i18n="age">Age</span><input type="number" id="profile-age-input" value="62" class="setting-input short"/></label>
+        <label class="setting-row"><span data-i18n="surgery_type">Surgery Type</span><input type="text" id="profile-surgery-input" value="Knee Replacement" class="setting-input"/></label>
+        <label class="setting-row"><span data-i18n="surgery_date">Surgery Date</span><input type="date" id="profile-date-input" value="2026-04-16" class="setting-input"/></label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading" data-i18n="doctor_contact">Doctor Contact</h3>
+      <div class="settings-card">
+        <label class="setting-row"><span data-i18n="doctor_name">Doctor's Name</span><input type="text" id="profile-doc-name-input" value="Dr. Rajesh Sharma" class="setting-input"/></label>
+        <label class="setting-row"><span data-i18n="doctor_phone">Doctor's Phone</span><input type="tel" id="profile-doc-phone-input" value="+91 98123 45678" class="setting-input"/></label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading" data-i18n="lang_settings">Language</h3>
+      <div class="settings-card">
+        <label class="setting-row"><span data-i18n="app_language">App Language</span>
+          <select class="setting-select" id="select-app-lang">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी (Hindi)</option>
+            <option value="ta">தமிழ் (Tamil)</option>
+            <option value="te">తెలుగు (Telugu)</option>
+          </select>
+        </label>
+        <label class="setting-row"><span data-i18n="voice_language">Voice Language</span>
+          <select class="setting-select" id="select-voice-lang">
+            <option value="en-IN">English (India)</option>
+            <option value="hi-IN">हिन्दी (Hindi)</option>
+            <option value="ta-IN">தமிழ் (Tamil)</option>
+            <option value="te-IN">తెలుగు (Telugu)</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading" data-i18n="theme">Theme</h3>
+      <div class="settings-card">
+        <div class="setting-row toggle-row"><span>Dark Mode</span><div class="toggle" id="toggle-theme"></div></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading">Notifications</h3>
+      <div class="settings-card">
+        <div class="setting-row toggle-row"><span>Medication Reminders</span><div class="toggle active" id="toggle-med"></div></div>
+        <div class="setting-row toggle-row"><span>Daily Check-in</span><div class="toggle active" id="toggle-checkin"></div></div>
+        <div class="setting-row toggle-row"><span>Caregiver Alerts</span><div class="toggle" id="toggle-caregiver"></div></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 class="settings-heading" data-i18n="caregiver_contact">Caregiver Contact</h3>
+      <div class="settings-card">
+        <label class="setting-row"><span data-i18n="caregiver_name">Name</span><input type="text" id="profile-cg-name-input" value="Priya Kumar" class="setting-input"/></label>
+        <label class="setting-row"><span data-i18n="caregiver_phone">Phone</span><input type="tel" id="profile-cg-phone-input" value="+91 98765 43210" class="setting-input"/></label>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-save-profile" style="margin-bottom:6rem;" data-i18n="save_changes">Save Changes</button>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" data-screen="home">🏠<span>Home</span></button>
+    <button class="nav-btn" data-screen="recovery">📊<span>Progress</span></button>
+    <button class="nav-btn" data-screen="meds">💊<span>Meds</span></button>
+    <button class="nav-btn active" data-screen="profile">👤<span>Profile</span></button>
+  </nav>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── ADD MEDICINE MODAL ── -->
+<div class="modal-overlay hidden" id="modal-overlay"></div>
+<div class="modal-sheet hidden" id="modal-add-med">
+  <div class="modal-handle"></div>
+  <div class="modal-header">
+    <h3 class="modal-title">Add Medicine</h3>
+    <button class="modal-close" id="btn-close-add-med" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <!-- Icon picker -->
+    <p class="form-label">Choose Icon</p>
+    <div class="icon-picker" id="icon-picker">
+      <button class="icon-opt selected" data-icon="💊">💊</button>
+      <button class="icon-opt" data-icon="🔴">🔴</button>
+      <button class="icon-opt" data-icon="🟡">🟡</button>
+      <button class="icon-opt" data-icon="🔵">🔵</button>
+      <button class="icon-opt" data-icon="🟢">🟢</button>
+      <button class="icon-opt" data-icon="⚪">⚪</button>
+      <button class="icon-opt" data-icon="🧴">🧴</button>
+      <button class="icon-opt" data-icon="💉">💉</button>
+    </div>
+
+    <!-- Name -->
+    <label class="form-label" for="med-name-input">Medicine Name <span class="req">*</span></label>
+    <input type="text" id="med-name-input" class="form-input" placeholder="e.g. Paracetamol" maxlength="60" />
+
+    <!-- Dose -->
+    <label class="form-label" for="med-dose-input">Dose &amp; Instructions</label>
+    <input type="text" id="med-dose-input" class="form-input" placeholder="e.g. 500mg — 1 tablet after food" maxlength="80" />
+
+    <!-- Time -->
+    <label class="form-label" for="med-time-input">Time</label>
+    <input type="time" id="med-time-input" class="form-input" value="08:00" />
+
+    <!-- Error -->
+    <p class="form-error hidden" id="med-form-error">Please enter the medicine name.</p>
+
+    <button class="btn-primary" id="btn-save-med">💊 Add Medicine</button>
+  </div>
+</div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
