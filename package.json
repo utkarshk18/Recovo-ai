@@ -6,8 +6,6 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
-    "build": "cd backend && npm install",
-    "postinstall": "cd backend && npm install",
     "test:ai": "cd backend && node test-accuracy.js"
   },
   "dependencies": {
