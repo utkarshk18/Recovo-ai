@@ -1,9 +1,11 @@
 /**
- * RECOVO AI — Symptom Analysis Engine
- * Rule-based NLP scoring system for post-surgery symptom assessment.
+ * RECOVO AI — Optimized Symptom Analysis & Triage Engine
+ * Combines high-performance Gemini 2.5 AI with caching, schema enforcement, and rule-based fallback.
  */
 
-// ── Keyword dictionaries ──────────────────────────────────────────────────────
+const crypto = require('crypto');
+
+// ── Keyword Dictionaries for Rule-Based Fallback & Fast Safety Guard ─────────
 
 const HIGH_RISK_KEYWORDS = [
   'severe pain','excruciating','unbearable','10/10','9/10','8/10',
@@ -39,14 +41,58 @@ const LOW_RISK_KEYWORDS = [
 
 const PAIN_PATTERN = /(\d+)\s*(?:out of|\/)\s*10/i;
 
-// ── Scoring function ──────────────────────────────────────────────────────────
+// ── In-Memory Response Cache for Sub-Millisecond Speed ───────────────────────
+
+const CACHE = new Map();
+const CACHE_MAX_SIZE = 300;
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+const ENGINE_STATS = {
+  totalRequests: 0,
+  cacheHits: 0,
+  cacheMisses: 0,
+  aiRequests: 0,
+  fallbackRequests: 0,
+  totalLatencyMs: 0
+};
+
+function normalizeTranscript(text) {
+  return (text || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s\d\/]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function getCachedAnalysis(text) {
+  const normKey = normalizeTranscript(text);
+  if (!normKey) return null;
+  const entry = CACHE.get(normKey);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    CACHE.delete(normKey);
+    return null;
+  }
+  return { ...entry.data, cached: true, responseTimeMs: 0 };
+}
+
+function setCachedAnalysis(text, data) {
+  const normKey = normalizeTranscript(text);
+  if (!normKey) return;
+  if (CACHE.size >= CACHE_MAX_SIZE) {
+    const firstKey = CACHE.keys().next().value;
+    CACHE.delete(firstKey);
+  }
+  CACHE.set(normKey, { timestamp: Date.now(), data });
+}
+
+// ── Rule-based Scoring System (Fast Fallback Engine) ─────────────────────────
 
 function ruleBasedAnalyzeSymptoms(text) {
   const lower = text.toLowerCase();
   let highScore = 0, medScore = 0, lowScore = 0;
   const matchedReasons = [];
 
-  // Helper to match whole words safely
   const hasKeyword = (str, kw) => {
     const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp('\\b' + escaped + '\\b', 'i').test(str);
@@ -54,11 +100,11 @@ function ruleBasedAnalyzeSymptoms(text) {
 
   let activeText = lower;
 
-  // 1. Handle Negations (Prevents "no fever" from triggering "fever")
   const negations = [
     'no fever', 'no swelling', 'no discharge', 'no bleeding', 'no blood',
     'no pain', 'not painful', 'not swollen', 'not red', 'no chills',
-    'no nausea', 'no dizziness', 'without fever', 'blood pressure normal'
+    'no nausea', 'no dizziness', 'without fever', 'blood pressure normal',
+    'don\'t have any high fever', 'no pus', 'no redness'
   ];
 
   negations.forEach(neg => {
@@ -68,7 +114,6 @@ function ruleBasedAnalyzeSymptoms(text) {
     }
   });
 
-  // Check pain scale explicitly
   const painMatch = lower.match(PAIN_PATTERN);
   let painLevel = 0;
   if (painMatch) {
@@ -78,7 +123,6 @@ function ruleBasedAnalyzeSymptoms(text) {
     else if (painLevel > 0) { lowScore += 2; matchedReasons.push(`Mild pain reported (${painLevel}/10)`); }
   }
 
-  // Score high-risk keywords
   HIGH_RISK_KEYWORDS.forEach(kw => {
     if (hasKeyword(activeText, kw)) {
       highScore += 2;
@@ -87,7 +131,6 @@ function ruleBasedAnalyzeSymptoms(text) {
     }
   });
 
-  // Score medium-risk keywords
   MEDIUM_RISK_KEYWORDS.forEach(kw => {
     if (hasKeyword(activeText, kw)) {
       medScore += 1;
@@ -96,17 +139,13 @@ function ruleBasedAnalyzeSymptoms(text) {
     }
   });
 
-  // Score low-risk keywords
   LOW_RISK_KEYWORDS.forEach(kw => {
     if (hasKeyword(activeText, kw)) {
       lowScore += 1;
     }
   });
 
-  // Determine risk level
   let riskLevel, confidence, action, followUpNeeded;
-
-  const total = highScore + medScore + lowScore || 1;
 
   if (highScore >= 3) {
     riskLevel = 'high';
@@ -130,7 +169,6 @@ function ruleBasedAnalyzeSymptoms(text) {
     followUpNeeded = confidence < 65;
   }
 
-  // Build human-readable reasons (limit to 4)
   const reasons = buildReasons(lower, painLevel, matchedReasons).slice(0, 4);
   if (reasons.length === 0) reasons.push('General symptoms assessed from your description');
 
@@ -148,7 +186,7 @@ function ruleBasedAnalyzeSymptoms(text) {
     action,
     followUpNeeded,
     painLevel,
-    rawScores: { highScore, medScore, lowScore }
+    engine: 'Rule-Based Engine (Fallback)'
   };
 }
 
@@ -192,8 +230,12 @@ function buildReasons(text, painLevel, matched) {
   return reasons;
 }
 
+// ── Gemini AI SDK Initialization ─────────────────────────────────────────────
+
 let aiClient = null;
 try {
+  const path = require('path');
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
   require('dotenv').config();
   const { GoogleGenAI } = require('@google/genai');
   const key = process.env.GEMINI_API_KEY;
@@ -206,70 +248,236 @@ try {
   console.log('Gemini AI SDK not available. Using rule-based fallback.');
 }
 
-async function analyzeSymptoms(text) {
-  if (!text || typeof text !== 'string') {
-    return ruleBasedAnalyzeSymptoms(text || '');
+/**
+ * Robust JSON Parser for Gemini AI output. Handles markdown fences,
+ * unescaped control characters/newlines, and auto-repairs truncated JSON.
+ */
+function parseAndCleanJson(rawText) {
+  if (!rawText || typeof rawText !== 'string') {
+    throw new Error('Empty response text from Gemini AI');
   }
 
-  if (aiClient) {
+  let cleaned = rawText.trim();
+
+  // 1. Strip markdown code block delimiters if present
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  // 2. Extract JSON object substring if extra commentary is present
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  } else if (firstBrace !== -1) {
+    cleaned = cleaned.substring(firstBrace);
+  }
+
+  // Attempt 1: Standard JSON parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (e1) {
+    // Attempt 2: Escape unescaped control characters & raw newlines inside strings
     try {
-      const systemInstruction = `You are RECOVO AI, an expert post-surgery recovery monitoring assistant.
-Analyze the patient's reported symptoms and return a structured JSON evaluation.
-
-Rules for response:
-- "riskLevel": Must be exactly one of "low", "medium", or "high". High risk is for severe pain (8-10/10), high fever, heavy bleeding, chest pain, infection signs (pus), or calf swelling/clots. Medium risk is for moderate pain (4-7/10), mild swelling, mild fever, nausea, or dizziness. Low risk is for mild pain (1-3/10), normal healing, stiffness, or rest.
-- "confidence": Integer percentage between 0 and 100 representing your analysis confidence.
-- "message": Concise, empathetic message for the patient (1-2 sentences).
-- "reasons": Array of 2 to 4 concise bullet points explaining why this risk level was assigned.
-- "action": Specific, actionable advice for the patient.
-- "followUpNeeded": Boolean (true if details are ambiguous or confidence is under 70%, else false).
-- "painLevel": Integer from 0 to 10 based on user transcript or symptom severity (e.g. 8-10 for severe/excruciating pain, 4-7 for moderate pain, 1-3 for mild pain, 0 for no pain).
-
-Respond strictly with a JSON object matching this schema:
-{
-  "riskLevel": "low" | "medium" | "high",
-  "confidence": number,
-  "message": "string",
-  "reasons": ["string"],
-  "action": "string",
-  "followUpNeeded": boolean,
-  "painLevel": number
-}`;
-
-      const prompt = `${systemInstruction}\n\nPatient symptom transcript: "${text}"`;
-
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json'
-        }
+      const sanitized = cleaned.replace(/[\r\n\t]/g, (match) => {
+        if (match === '\r') return '';
+        if (match === '\n') return '\\n';
+        if (match === '\t') return '\\t';
+        return match;
       });
-
-      if (response && response.text) {
-        const result = JSON.parse(response.text);
-
-        const validRisk = ['low', 'medium', 'high'].includes((result.riskLevel || '').toLowerCase())
-          ? result.riskLevel.toLowerCase()
-          : 'medium';
-
-        return {
-          riskLevel: validRisk,
-          confidence: typeof result.confidence === 'number' ? Math.max(0, Math.min(100, Math.round(result.confidence))) : 80,
-          message: result.message || 'Symptom analysis complete.',
-          reasons: Array.isArray(result.reasons) && result.reasons.length > 0 ? result.reasons : ['Symptom description analyzed by Gemini AI.'],
-          action: result.action || 'Please consult your doctor if symptoms worsen.',
-          followUpNeeded: typeof result.followUpNeeded === 'boolean' ? result.followUpNeeded : false,
-          painLevel: typeof result.painLevel === 'number' ? Math.max(0, Math.min(10, Math.round(result.painLevel))) : 0,
-          engine: 'Gemini 2.5 Flash'
-        };
+      return JSON.parse(sanitized);
+    } catch (e2) {
+      // Attempt 3: Repair truncated JSON structures (missing closing quotes/brackets)
+      try {
+        const repaired = autoRepairTruncatedJson(cleaned);
+        return JSON.parse(repaired);
+      } catch (e3) {
+        throw new Error(`JSON Parse Error (${e1.message}) on payload: "${cleaned.substring(0, 100)}..."`);
       }
-    } catch (err) {
-      console.warn('⚠️ Gemini AI analysis failed, falling back to rule-based engine:', err.message);
+    }
+  }
+}
+
+/**
+ * Auto-repairs truncated JSON string payloads by closing open strings, arrays, and objects.
+ */
+function autoRepairTruncatedJson(str) {
+  let s = str.trim();
+  let inString = false;
+  let escaped = false;
+  const stack = [];
+
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (char === '{' || char === '[') {
+        stack.push(char === '{' ? '}' : ']');
+      } else if (char === '}' || char === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === char) {
+          stack.pop();
+        }
+      }
     }
   }
 
-  return ruleBasedAnalyzeSymptoms(text);
+  if (inString) {
+    s += '"';
+  }
+
+  s = s.replace(/[,:]\s*$/, '');
+
+  while (stack.length > 0) {
+    s += stack.pop();
+  }
+
+  return s;
 }
 
-module.exports = { analyzeSymptoms };
+// Optimized System Instruction for Gemini Prompt Caching & Accuracy
+const SYSTEM_INSTRUCTION = `You are RECOVO AI, an expert post-surgery recovery monitoring assistant.
+Analyze patient post-op symptom descriptions carefully to determine clinical risk and extract pain metrics.
+
+CRITICAL TRIAGE & NEGATION RULES:
+1. RISK LEVEL ASSIGNMENT ("high" | "medium" | "low"):
+   - "high": Pain >= 8/10, high fever (>101°F / 38.3°C), yellow pus/foul discharge, active wound bleeding/dehiscence, chest pain, shortness of breath, sudden swollen/hot calf (DVT risk), or persistent vomiting/dehydration.
+   - "medium": Pain 4-7/10, low-grade fever (99-100°F), mild swelling or redness without pus, persistent nausea, dizziness, or sleep anxiety.
+   - "low": Pain 0-3/10, minor stiffness, resting well, clear negative declarations ("no fever, no swelling, no pain"), or normal healing signs.
+
+2. NEGATION SENSITIVITY:
+   - Declarations like "no fever", "no pus", "no bleeding", "don't have severe pain" MUST NOT trigger medium or high risk. Evaluate negated symptoms as low risk indicators.
+
+3. PAIN LEVEL (0 to 10):
+   - Extract explicitly mentioned numeric pain levels (e.g., "9/10" -> 9, "4 out of 10" -> 4).
+   - If no explicit number is mentioned, infer based on severity descriptors (excruciating=9, severe=8, moderate=5, mild=2, none=0).
+
+Output MUST strictly conform to the defined JSON schema.`;
+
+const RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    riskLevel: { type: 'STRING', enum: ['low', 'medium', 'high'] },
+    confidence: { type: 'INTEGER' },
+    message: { type: 'STRING' },
+    reasons: { type: 'ARRAY', items: { type: 'STRING' } },
+    action: { type: 'STRING' },
+    followUpNeeded: { type: 'BOOLEAN' },
+    painLevel: { type: 'INTEGER' }
+  },
+  required: ['riskLevel', 'confidence', 'message', 'reasons', 'action', 'followUpNeeded', 'painLevel']
+};
+
+/**
+ * Primary Symptom Analysis Function (with caching, optimized Gemini SDK call, and fallback)
+ */
+async function analyzeSymptoms(text) {
+  ENGINE_STATS.totalRequests++;
+  const startTime = Date.now();
+
+  if (!text || typeof text !== 'string' || text.trim().length < 2) {
+    const fallback = ruleBasedAnalyzeSymptoms(text || '');
+    ENGINE_STATS.fallbackRequests++;
+    return { ...fallback, responseTimeMs: Date.now() - startTime };
+  }
+
+  // 1. In-Memory Cache Check (< 1ms)
+  const cachedResult = getCachedAnalysis(text);
+  if (cachedResult) {
+    ENGINE_STATS.cacheHits++;
+    return cachedResult;
+  }
+  ENGINE_STATS.cacheMisses++;
+
+  // 2. Call Gemini AI with SDK-level optimizations
+  if (aiClient) {
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    for (const modelName of modelsToTry) {
+      try {
+        ENGINE_STATS.aiRequests++;
+
+        const response = await aiClient.models.generateContent({
+          model: modelName,
+          contents: `Patient transcript: "${text.trim()}"`,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.1,
+            maxOutputTokens: 2048
+          }
+        });
+
+        const responseTimeMs = Date.now() - startTime;
+        ENGINE_STATS.totalLatencyMs += responseTimeMs;
+
+        if (response && response.text) {
+          const result = parseAndCleanJson(response.text);
+
+          const validRisk = ['low', 'medium', 'high'].includes((result.riskLevel || '').toLowerCase())
+            ? result.riskLevel.toLowerCase()
+            : 'medium';
+
+          const finalResult = {
+            riskLevel: validRisk,
+            confidence: typeof result.confidence === 'number' ? Math.max(0, Math.min(100, Math.round(result.confidence))) : 85,
+            message: result.message || 'Symptom analysis complete.',
+            reasons: Array.isArray(result.reasons) && result.reasons.length > 0 ? result.reasons : ['Symptom description evaluated by Gemini AI.'],
+            action: result.action || 'Please consult your healthcare provider if symptoms worsen.',
+            followUpNeeded: typeof result.followUpNeeded === 'boolean' ? result.followUpNeeded : false,
+            painLevel: typeof result.painLevel === 'number' ? Math.max(0, Math.min(10, Math.round(result.painLevel))) : 0,
+            engine: `Gemini (${modelName})`,
+            responseTimeMs,
+            cached: false
+          };
+
+          setCachedAnalysis(text, finalResult);
+          return finalResult;
+        }
+      } catch (err) {
+        console.warn(`⚠️ Gemini AI model (${modelName}) call failed:`, err.message);
+      }
+    }
+  }
+
+  // 3. Fallback Engine
+  ENGINE_STATS.fallbackRequests++;
+  const fallbackResult = ruleBasedAnalyzeSymptoms(text);
+  const responseTimeMs = Date.now() - startTime;
+  return { ...fallbackResult, responseTimeMs, cached: false };
+}
+
+function getEngineStats() {
+  const avgLatency = ENGINE_STATS.aiRequests > 0 
+    ? Math.round(ENGINE_STATS.totalLatencyMs / ENGINE_STATS.aiRequests) 
+    : 0;
+  
+  const cacheHitRate = ENGINE_STATS.totalRequests > 0 
+    ? ((ENGINE_STATS.cacheHits / ENGINE_STATS.totalRequests) * 100).toFixed(1) 
+    : '0.0';
+
+  return {
+    ...ENGINE_STATS,
+    avgLatencyMs: avgLatency,
+    cacheHitRate: parseFloat(cacheHitRate),
+    cacheSize: CACHE.size
+  };
+}
+
+function clearCache() {
+  CACHE.clear();
+}
+
+module.exports = { 
+  analyzeSymptoms,
+  getEngineStats,
+  clearCache
+};

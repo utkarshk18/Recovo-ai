@@ -6,7 +6,8 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const { getDb, queryAll, queryOne, run } = require('./database');
-const { analyzeSymptoms } = require('./ai-engine');
+const { analyzeSymptoms, getEngineStats, clearCache } = require('./ai-engine');
+const { runBenchmark } = require('./test-accuracy');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -15,7 +16,11 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
+// Normalize request URL for serverless rewrites
 app.use((req, _res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
   console.log(`[${new Date().toISOString().substring(11,19)}] ${req.method} ${req.url}`);
   next();
 });
@@ -24,8 +29,15 @@ app.use((req, _res, next) => {
 let dbReady = false;
 getDb().then(() => { dbReady = true; }).catch(e => { console.error('DB init failed:', e); });
 
-app.use((_req, res, next) => {
-  if (!dbReady) return res.status(503).json({ error: 'Database initializing, please retry in a moment.' });
+app.use(async (_req, res, next) => {
+  if (!dbReady) {
+    try {
+      await getDb();
+      dbReady = true;
+    } catch (e) {
+      return res.status(503).json({ error: 'Database initializing failed: ' + e.message });
+    }
+  }
   next();
 });
 
@@ -233,6 +245,31 @@ app.post('/api/emergency/notify', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// AI DIAGNOSTICS & BENCHMARKING
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/ai/stats', (_req, res) => {
+  try {
+    const stats = getEngineStats();
+    res.json({ success: true, data: stats });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ai/benchmark', async (req, res) => {
+  try {
+    const quick = req.body?.quick ?? false;
+    const summary = await runBenchmark({ verbose: false, rateLimitFriendly: true });
+    res.json({ success: true, data: summary });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/ai/cache/clear', (_req, res) => {
+  try {
+    clearCache();
+    res.json({ success: true, message: 'AI Engine response cache cleared successfully 🧹' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ══════════════════════════════════════════════════════════════════════════════
 app.get('/api/health', (_req, res) => {
@@ -243,8 +280,12 @@ app.get('/api/health', (_req, res) => {
 function safeJson(str, fallback) { try { return JSON.parse(str); } catch { return fallback; } }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🚀 RECOVO AI Backend → http://localhost:${PORT}`);
-  console.log(`📊 API Health      → http://localhost:${PORT}/api/health`);
-  console.log(`🌐 Frontend        → http://localhost:${PORT}\n`);
-});
+if (require.main === module || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 RECOVO AI Backend → http://localhost:${PORT}`);
+    console.log(`📊 API Health      → http://localhost:${PORT}/api/health`);
+    console.log(`🌐 Frontend        → http://localhost:${PORT}\n`);
+  });
+}
+
+module.exports = app;

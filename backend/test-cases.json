@@ -1,0 +1,242 @@
+[
+  {
+    "id": 1,
+    "category": "High Risk - Severe Pain",
+    "transcript": "I am in excruciating pain 9/10 near my surgical incision site and can barely move.",
+    "expectedRisk": "high",
+    "expectedPainRange": [8, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 2,
+    "category": "High Risk - Fever & Pus",
+    "transcript": "My wound is oozing yellow pus and I have a high fever of 102.5°F with chills.",
+    "expectedRisk": "high",
+    "expectedPainRange": [3, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 3,
+    "category": "High Risk - Pulmonary / Cardiac",
+    "transcript": "I started feeling severe chest pain and short of breath after walking across the room.",
+    "expectedRisk": "high",
+    "expectedPainRange": [6, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 4,
+    "category": "High Risk - Deep Vein Thrombosis",
+    "transcript": "My right calf is very swollen, hot to the touch, extremely red, and hurts when I step.",
+    "expectedRisk": "high",
+    "expectedPainRange": [6, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 5,
+    "category": "High Risk - Wound Dehiscence",
+    "transcript": "My surgical stitches opened up and there is active dark red bleeding from the wound.",
+    "expectedRisk": "high",
+    "expectedPainRange": [5, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 6,
+    "category": "High Risk - Unbearable Pain Slang",
+    "transcript": "the pain is 10/10 unbearable, i cant take it anymore please help",
+    "expectedRisk": "high",
+    "expectedPainRange": [9, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 7,
+    "category": "High Risk - Severe Vomiting & Dehydration",
+    "transcript": "I have been vomiting non-stop for 8 hours, cannot keep water down, and feel extremely dehydrated.",
+    "expectedRisk": "high",
+    "expectedPainRange": [4, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 8,
+    "category": "High Risk - Fainting & Dizziness",
+    "transcript": "I passed out briefly when trying to stand up and feel extremely lightheaded and dizzy.",
+    "expectedRisk": "high",
+    "expectedPainRange": [2, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 9,
+    "category": "High Risk - Typo / Misspelling",
+    "transcript": "unbareable pane in my leg n wound is oozeing blood n hot fever",
+    "expectedRisk": "high",
+    "expectedPainRange": [7, 10],
+    "isEmergency": true
+  },
+  {
+    "id": 10,
+    "category": "High Risk - High Pain Scale 8/10",
+    "transcript": "My pain is 8 out of 10 and medication is not helping at all.",
+    "expectedRisk": "high",
+    "expectedPainRange": [8, 8],
+    "isEmergency": true
+  },
+  {
+    "id": 11,
+    "category": "Medium Risk - Moderate Pain",
+    "transcript": "I have moderate pain around 5 out of 10. It aches when I bend my knee.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [4, 6],
+    "isEmergency": false
+  },
+  {
+    "id": 12,
+    "category": "Medium Risk - Mild Swelling & Redness",
+    "transcript": "There is some mild redness and swelling around the incision, but no pus or fluid coming out.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [2, 5],
+    "isEmergency": false
+  },
+  {
+    "id": 13,
+    "category": "Medium Risk - Low Grade Fever",
+    "transcript": "My temperature is 99.8°F today. Feeling slightly warm and a little uncomfortable.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [2, 5],
+    "isEmergency": false
+  },
+  {
+    "id": 14,
+    "category": "Medium Risk - Nausea",
+    "transcript": "I feel nausea after taking my antibiotics, pain is around 4/10.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [3, 5],
+    "isEmergency": false
+  },
+  {
+    "id": 15,
+    "category": "Medium Risk - Sleep / Anxiety",
+    "transcript": "I am having trouble sleeping due to mild throbbing, pain is 6/10.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [5, 7],
+    "isEmergency": false
+  },
+  {
+    "id": 16,
+    "category": "Medium Risk - Slight Warmth",
+    "transcript": "The skin near my bandage feels warm to touch, pain is 4 out of 10.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [3, 5],
+    "isEmergency": false
+  },
+  {
+    "id": 17,
+    "category": "Medium Risk - Bruising & Discoloration",
+    "transcript": "Noticeable purple bruising around the surgical area, pain is 5/10 when walking.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [4, 6],
+    "isEmergency": false
+  },
+  {
+    "id": 18,
+    "category": "Medium Risk - Tightness",
+    "transcript": "My knee feels stiff and tight, pain is 6/10 during exercises.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [5, 7],
+    "isEmergency": false
+  },
+  {
+    "id": 19,
+    "category": "Medium Risk - Mild Fatigue",
+    "transcript": "Feeling very exhausted today with 4/10 pain. Appetite is low.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [3, 5],
+    "isEmergency": false
+  },
+  {
+    "id": 20,
+    "category": "Medium Risk - Moderate Pain 7/10",
+    "transcript": "Pain is 7 out of 10 today, manageable but uncomfortable.",
+    "expectedRisk": "medium",
+    "expectedPainRange": [7, 7],
+    "isEmergency": false
+  },
+  {
+    "id": 21,
+    "category": "Low Risk - Good Healing",
+    "transcript": "I am feeling great today! Pain is only 1 out of 10 and wound looks clean.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 2],
+    "isEmergency": false
+  },
+  {
+    "id": 22,
+    "category": "Low Risk - Rest & Med Compliance",
+    "transcript": "Resting well, taking all prescribed medications on time. Pain is 2/10.",
+    "expectedRisk": "low",
+    "expectedPainRange": [1, 3],
+    "isEmergency": false
+  },
+  {
+    "id": 23,
+    "category": "Low Risk - Explicit Negations",
+    "transcript": "No fever, no swelling, no discharge, and no bleeding. Pain is 2/10.",
+    "expectedRisk": "low",
+    "expectedPainRange": [1, 3],
+    "isEmergency": false
+  },
+  {
+    "id": 24,
+    "category": "Low Risk - Normal Recovery",
+    "transcript": "Stitches look clean and dry, walking around slowly without any issues. Pain 0/10.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 1],
+    "isEmergency": false
+  },
+  {
+    "id": 25,
+    "category": "Low Risk - Mild Stiffness",
+    "transcript": "A little bit of stiffness in the morning, but overall recovering very well. Pain 2 out of 10.",
+    "expectedRisk": "low",
+    "expectedPainRange": [1, 3],
+    "isEmergency": false
+  },
+  {
+    "id": 26,
+    "category": "Low Risk - Slight Discomfort",
+    "transcript": "Slight soreness near incision when I move, 3/10 pain. Everything else is fine.",
+    "expectedRisk": "low",
+    "expectedPainRange": [2, 3],
+    "isEmergency": false
+  },
+  {
+    "id": 27,
+    "category": "Low Risk - Negation Complex",
+    "transcript": "I don't have any high fever or pus or severe pain. Just resting and feeling good.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 2],
+    "isEmergency": false
+  },
+  {
+    "id": 28,
+    "category": "Low Risk - Meds Taken",
+    "transcript": "Took my morning painkiller, pain is 1/10. Drinking lots of water.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 2],
+    "isEmergency": false
+  },
+  {
+    "id": 29,
+    "category": "Low Risk - Normal Check-in",
+    "transcript": "Day 5 post-op. Dressing is dry, no fever, no redness, feeling much better today.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 2],
+    "isEmergency": false
+  },
+  {
+    "id": 30,
+    "category": "Low Risk - Minimal Pain",
+    "transcript": "Pain is 1 out of 10. Sleeping comfortably through the night.",
+    "expectedRisk": "low",
+    "expectedPainRange": [0, 2],
+    "isEmergency": false
+  }
+]

@@ -5,21 +5,57 @@
 const initSqlJs = require('sql.js');
 const fs   = require('fs');
 const path = require('path');
+const os   = require('os');
 
-const DB_PATH = path.join(__dirname, 'recovo.db');
+function resolveDbPath() {
+  const defaultPath = path.join(__dirname, 'recovo.db');
+  const tmpPath = path.join(os.tmpdir(), 'recovo.db');
+
+  try {
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      if (fs.existsSync(defaultPath) && !fs.existsSync(tmpPath)) {
+        try { fs.copyFileSync(defaultPath, tmpPath); } catch (_) {}
+      }
+      return tmpPath;
+    }
+    if (fs.existsSync(defaultPath)) {
+      try {
+        fs.accessSync(defaultPath, fs.constants.W_OK);
+        return defaultPath;
+      } catch (_) {
+        if (!fs.existsSync(tmpPath)) {
+          fs.copyFileSync(defaultPath, tmpPath);
+        }
+        return tmpPath;
+      }
+    }
+    fs.accessSync(__dirname, fs.constants.W_OK);
+    return defaultPath;
+  } catch (_) {
+    return tmpPath;
+  }
+}
+
+let DB_PATH = resolveDbPath();
 
 let _db = null;
 
 async function getDb() {
   if (_db) return _db;
 
-  const SQL = await initSqlJs();
+  try {
+    const SQL = await initSqlJs();
 
-  // Load existing DB or create new
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    _db = new SQL.Database(fileBuffer);
-  } else {
+    // Load existing DB or create new
+    if (fs.existsSync(DB_PATH)) {
+      const fileBuffer = fs.readFileSync(DB_PATH);
+      _db = new SQL.Database(fileBuffer);
+    } else {
+      _db = new SQL.Database();
+    }
+  } catch (err) {
+    console.warn('⚠️ SQLite file loading warning:', err.message, 'Falling back to in-memory database.');
+    const SQL = await initSqlJs();
     _db = new SQL.Database();
   }
 
@@ -134,6 +170,17 @@ function persist() {
     fs.writeFileSync(DB_PATH, Buffer.from(data));
   } catch (e) {
     console.error('DB persist error:', e.message);
+    try {
+      const fallbackPath = path.join(os.tmpdir(), 'recovo.db');
+      if (fallbackPath !== DB_PATH) {
+        const data = _db.export();
+        fs.writeFileSync(fallbackPath, Buffer.from(data));
+        DB_PATH = fallbackPath;
+        console.log(`✅ DB persisted to temp directory: ${DB_PATH}`);
+      }
+    } catch (e2) {
+      console.error('DB fallback persist error:', e2.message);
+    }
   }
 }
 

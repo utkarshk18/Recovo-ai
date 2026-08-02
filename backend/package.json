@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test:ai": "node test-accuracy.js"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",

@@ -1,10 +1,17 @@
 /* ─── RECOVO AI — app.js (Complete, Backend-Connected) ─── */
-const API = '/api';
+const getApiBase = () => {
+  if (typeof window !== 'undefined' && window.RECOVO_API_URL) return window.RECOVO_API_URL;
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('RECOVO_API_URL')) return localStorage.getItem('RECOVO_API_URL');
+  return '/api';
+};
+
+const API = getApiBase();
 
 // ── Utilities ──
 const $ = id => document.getElementById(id);
 const showToast = (msg, dur = 2800) => {
-  const t = $('toast'); t.textContent = msg;
+  const t = $('toast'); if (!t) return;
+  t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), dur);
 };
@@ -16,8 +23,9 @@ async function apiFetch(path, opts = {}) {
       ...opts,
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
+    if (!res.ok) return null;
     return await res.json();
-  } catch {
+  } catch (e) {
     return null; // Backend offline — fall back to demo mode
   }
 }
