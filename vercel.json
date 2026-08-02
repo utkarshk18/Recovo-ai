@@ -1,11 +1,7 @@
 {
-  "version": 2,
   "functions": {
     "api/*.js": {
       "includeFiles": "node_modules/sql.js/dist/sql-wasm.wasm"
-    },
-    "backend/api/*.js": {
-      "includeFiles": "backend/node_modules/sql.js/dist/sql-wasm.wasm"
     }
   }
 }
