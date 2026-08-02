@@ -44,19 +44,40 @@ async function getDb() {
   if (_db) return _db;
 
   try {
-    const SQL = await initSqlJs();
+    const locateWasm = file => {
+      const candidates = [
+        path.join(__dirname, 'node_modules', 'sql.js', 'dist', file),
+        path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file),
+        path.join(process.cwd(), 'backend', 'node_modules', 'sql.js', 'dist', file),
+        path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file)
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+      }
+      return file;
+    };
+
+    const SQL = await initSqlJs({ locateFile: locateWasm });
 
     // Load existing DB or create new
     if (fs.existsSync(DB_PATH)) {
-      const fileBuffer = fs.readFileSync(DB_PATH);
-      _db = new SQL.Database(fileBuffer);
+      try {
+        const fileBuffer = fs.readFileSync(DB_PATH);
+        _db = new SQL.Database(fileBuffer);
+      } catch (_) {
+        _db = new SQL.Database();
+      }
     } else {
       _db = new SQL.Database();
     }
   } catch (err) {
     console.warn('⚠️ SQLite file loading warning:', err.message, 'Falling back to in-memory database.');
-    const SQL = await initSqlJs();
-    _db = new SQL.Database();
+    try {
+      const SQL = await initSqlJs();
+      _db = new SQL.Database();
+    } catch (e2) {
+      console.error('Critical SQL.js failure:', e2.message);
+    }
   }
 
   // Create schema
